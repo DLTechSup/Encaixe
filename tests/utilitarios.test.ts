@@ -2,7 +2,6 @@
 import { describe, expect, it } from "vitest";
 import { nomeArquivoPdf } from "@/lib/slug";
 import { estruturarCurriculo, textoSeguroParaPdf } from "@/lib/estrutura-curriculo";
-import { extrairTextoDaVaga } from "@/lib/extrair-vaga";
 
 describe("nomeArquivoPdf", () => {
   it("usa minúsculas, sem acento e com hífens", () => {
@@ -21,20 +20,5 @@ describe("estruturarCurriculo", () => {
   });
   it("remove caracteres que a Helvetica não suporta", () => {
     expect(textoSeguroParaPdf("Olá “mundo” 🚀 → ok")).toBe("Olá “mundo”  -> ok");
-  });
-});
-
-describe("extrairTextoDaVaga", () => {
-  it("prefere o JSON-LD JobPosting", () => {
-    const html = `<html><head><script type="application/ld+json">${JSON.stringify({
-      "@type": "JobPosting",
-      title: "Dev React",
-      description: "<p>Requisitos:</p><ul><li>React</li><li>SQL</li></ul>",
-    })}</script></head><body><nav>menu</nav></body></html>`;
-    expect(extrairTextoDaVaga(html)).toBe("Dev React\n\nRequisitos:\n- React\n- SQL");
-  });
-  it("ignora navegação e scripts", () => {
-    const html = "<body><nav>Menu</nav><main><h1>Vaga</h1><p>Texto</p></main><script>x()</script></body>";
-    expect(extrairTextoDaVaga(html)).toBe("Vaga\nTexto");
   });
 });

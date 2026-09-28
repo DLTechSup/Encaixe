@@ -15,7 +15,7 @@ import { EtapaResultado } from "./etapa-resultado";
 type Etapa = 1 | 2 | 3;
 
 const TITULOS: Record<Etapa, { titulo: string; subtitulo: string }> = {
-  1: { titulo: "Qual é a vaga?", subtitulo: "Vamos descobrir o que o filtro da vaga procura." },
+  1: { titulo: "Qual é a vaga?", subtitulo: "Cole o texto da vaga para descobrirmos o que o filtro procura." },
   2: { titulo: "Agora, o seu currículo", subtitulo: "Vamos comparar com o que a vaga pede." },
   3: { titulo: "Seu resultado", subtitulo: "Veja seu encaixe, confirme o que você tem e gere a versão ajustada." },
 };

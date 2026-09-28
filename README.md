@@ -1,6 +1,6 @@
 # Encaixe
 
-Currículo ATS friendly a partir de uma vaga. Cole a vaga (link ou texto), envie o seu currículo (PDF, Word .docx ou .txt) ou cole o texto, veja o percentual de match, as palavras-chave encontradas e as que faltam, e baixe uma versão ajustada em PDF.
+Currículo ATS friendly a partir de uma vaga. Cole o texto da vaga, envie o seu currículo (PDF, Word .docx ou .txt) ou cole o texto, veja o percentual de match, as palavras-chave encontradas e as que faltam, e baixe uma versão ajustada em PDF.
 
 > **Regra de ouro:** o Encaixe melhora como você se apresenta. Ele nunca inventa experiência, habilidade, cargo, empresa, data, número ou certificação que você não tem.
 
@@ -10,7 +10,7 @@ Next.js (App Router) + TypeScript + Tailwind CSS + shadcn/ui e `@react-pdf/rende
 
 **Não usa IA externa, chave de API nem servidor.** É um site estático: a análise da vaga, a comparação, a reescrita e o PDF rodam no navegador da pessoa. Sem banco de dados, login ou armazenamento: tudo fica em memória na aba e some ao recarregar.
 
-Quando a vaga é informada por link, o navegador tenta baixar a página diretamente e, se o site bloquear, usa o leitor público [AllOrigins](https://allorigins.win), que recebe só o link da vaga (nunca o currículo). Se nada funcionar, a pessoa cola o texto da vaga.
+A vaga é informada colando o texto da descrição (sites como Indeed e LinkedIn bloqueiam a leitura automática por link).
 
 ## Rodando localmente
 
@@ -35,7 +35,6 @@ O site fica em `https://<usuário>.github.io/<repositório>/`. Também funciona 
 
 | Etapa | Onde | Arquivo |
 |---|---|---|
-| Buscar a vaga por link e extrair o texto (JSON-LD ou HTML) | navegador | `lib/extrair-vaga.ts` |
 | Ler o currículo enviado (PDF com pdf.js, .docx com mammoth, .txt) | navegador | `lib/ler-arquivo.ts` |
 | Ler a vaga: seções (requisitos, diferenciais, atividades, benefícios), termos do dicionário e expressões como "experiência com…" (máx. 30 termos) | navegador | `lib/analisar-vaga.ts`, `lib/dicionario.ts` |
 | Comparação e score (peso 3 obrigatório, 1 desejável) | navegador | `lib/score.ts` |
@@ -49,7 +48,6 @@ O site fica em `https://<usuário>.github.io/<repositório>/`. Também funciona 
 | Ortografia (dicionário VERO pt-BR) e escrita (crase, "mas/mais", "há/a"…) | navegador | `lib/ortografia/` |
 | Vaga de nível mais simples ("qualificado demais"): detecção e ajustes opcionais que omitem, sem mudar cargos, empresas ou datas | navegador | `lib/nivel.ts`, `lib/sugestoes.ts` |
 | Revisão final editável antes de salvar em PDF, Word ou .txt | navegador | `components/analise/curriculo-ajustado.tsx` |
-| Favorito "Enviar ao Encaixe": envia a vaga aberta em qualquer site (Indeed, LinkedIn…) pelo fragmento `#vaga=`, sem servidor | navegador | `lib/favorito.ts`, `components/analise/favorito.tsx` |
 
 Para reconhecer mais competências, acrescente entradas em `lib/dicionario.ts` (termo, categoria e variantes com o **mesmo** significado).
 

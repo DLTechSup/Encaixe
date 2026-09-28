@@ -9,7 +9,7 @@ import { IlustracaoHero } from "@/components/home/ilustracao-hero";
 import { AVISO_PRIVACIDADE, REGRA_DE_OURO } from "@/lib/constantes";
 
 const PASSOS = [
-  { icone: ClipboardPaste, titulo: "Cole a vaga", texto: "Cole o link da vaga ou o texto da descrição. Identificamos os requisitos obrigatórios e os desejáveis." },
+  { icone: ClipboardPaste, titulo: "Cole a vaga", texto: "Copie o texto da vaga, com atividades e requisitos, e cole no Encaixe. Identificamos os requisitos obrigatórios e os desejáveis." },
   { icone: Upload, titulo: "Envie seu currículo", texto: "Envie o arquivo em PDF ou Word, ou cole o texto. Mostramos seu encaixe e as palavras-chave que faltam." },
   { icone: FileCheck2, titulo: "Receba a versão ajustada", texto: "Aprove as sugestões que fizerem sentido, compare o antes e depois e baixe em PDF ou Word." },
 ];
