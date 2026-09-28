@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Lock } from "lucide-react";
 import { AVISO_PRIVACIDADE } from "@/lib/constantes";
 import type { AnaliseVaga } from "@/lib/tipos";
+import { analisarVaga } from "@/lib/analisar-vaga";
 import { IndicadorEtapas } from "./indicador-etapas";
 import { EtapaVaga } from "./etapa-vaga";
 import { EtapaCurriculo } from "./etapa-curriculo";
@@ -17,7 +18,7 @@ const TITULOS: Record<Etapa, { titulo: string; subtitulo: string }> = {
   3: { titulo: "Resultado", subtitulo: "Veja seu encaixe e gere a versão ajustada." },
 };
 
-/** Estado apenas em memória: nada é salvo e tudo some ao recarregar. */
+/** Estado apenas em memória: nada é salvo e tudo some ao recarregar. A análise roda no navegador. */
 export function FluxoAnalise() {
   const [etapa, setEtapa] = useState<Etapa>(1);
   const [vaga, setVaga] = useState("");
@@ -26,8 +27,6 @@ export function FluxoAnalise() {
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState("");
   const [chaveResultado, setChaveResultado] = useState(0);
-  // Mesma vaga => mesmas palavras-chave => mesmo score ao repetir a análise.
-  const cacheAnalises = useRef(new Map<string, AnaliseVaga>());
   const tituloRef = useRef<HTMLHeadingElement>(null);
   const primeiraRenderizacao = useRef(true);
 
@@ -41,34 +40,21 @@ export function FluxoAnalise() {
   }, [etapa]);
 
   async function analisar() {
-    const chave = vaga.trim();
     setErro("");
-    const emCache = cacheAnalises.current.get(chave);
-    if (emCache) {
-      setAnalise(emCache);
-      setChaveResultado((k) => k + 1);
-      setEtapa(3);
+    setCarregando(true);
+    // Pausa curta só para a pessoa ver que a leitura aconteceu; tudo roda aqui no navegador.
+    await new Promise((r) => setTimeout(r, 500));
+    const resultado = analisarVaga(vaga);
+    setCarregando(false);
+    if (resultado.palavras_chave.length === 0) {
+      setErro(
+        "Não encontramos requisitos nessa descrição. Volte e confira se colou a vaga completa, com a parte de requisitos."
+      );
       return;
     }
-
-    setCarregando(true);
-    try {
-      const resposta = await fetch("/api/analisar", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ vaga: chave }),
-      });
-      const dados = await resposta.json();
-      if (!resposta.ok) throw new Error(dados.erro ?? "Erro ao analisar.");
-      cacheAnalises.current.set(chave, dados as AnaliseVaga);
-      setAnalise(dados as AnaliseVaga);
-      setChaveResultado((k) => k + 1);
-      setEtapa(3);
-    } catch (e) {
-      setErro(e instanceof Error ? e.message : "Erro ao analisar.");
-    } finally {
-      setCarregando(false);
-    }
+    setAnalise(resultado);
+    setChaveResultado((k) => k + 1);
+    setEtapa(3);
   }
 
   function novaAnalise() {
@@ -102,7 +88,7 @@ export function FluxoAnalise() {
           curriculo={curriculo}
           setCurriculo={setCurriculo}
           carregando={carregando}
-          erroServidor={erro}
+          erroAnalise={erro}
           onVoltar={() => setEtapa(1)}
           onAnalisar={analisar}
         />

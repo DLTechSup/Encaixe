@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import { nomeArquivoPdf } from "@/lib/slug";
 import { estruturarCurriculo, textoSeguroParaPdf } from "@/lib/estrutura-curriculo";
 import { extrairTextoDaVaga } from "@/lib/extrair-vaga";
-import { sanitizarPalavras } from "@/lib/validacao";
 
 describe("nomeArquivoPdf", () => {
   it("usa minúsculas, sem acento e com hífens", () => {
@@ -36,19 +35,5 @@ describe("extrairTextoDaVaga", () => {
   it("ignora navegação e scripts", () => {
     const html = "<body><nav>Menu</nav><main><h1>Vaga</h1><p>Texto</p></main><script>x()</script></body>";
     expect(extrairTextoDaVaga(html)).toBe("Vaga\nTexto");
-  });
-});
-
-describe("sanitizarPalavras", () => {
-  it("deduplica, limita categorias e ordena obrigatórios primeiro", () => {
-    const r = sanitizarPalavras([
-      { termo: "Figma", variantes: [], categoria: "ferramenta", obrigatorio: false },
-      { termo: "SQL", variantes: ["sql", "T-SQL"], categoria: "xpto", obrigatorio: true },
-      { termo: "sql", variantes: [], categoria: "tecnica", obrigatorio: true },
-    ]);
-    expect(r).toEqual([
-      { termo: "SQL", variantes: ["T-SQL"], categoria: "tecnica", obrigatorio: true },
-      { termo: "Figma", variantes: [], categoria: "ferramenta", obrigatorio: false },
-    ]);
   });
 });

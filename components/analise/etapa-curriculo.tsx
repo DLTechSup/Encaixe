@@ -13,12 +13,12 @@ interface Props {
   curriculo: string;
   setCurriculo: (v: string) => void;
   carregando: boolean;
-  erroServidor: string;
+  erroAnalise: string;
   onVoltar: () => void;
   onAnalisar: () => void;
 }
 
-export function EtapaCurriculo({ curriculo, setCurriculo, carregando, erroServidor, onVoltar, onAnalisar }: Props) {
+export function EtapaCurriculo({ curriculo, setCurriculo, carregando, erroAnalise, onVoltar, onAnalisar }: Props) {
   const [erro, setErro] = useState("");
 
   function analisar() {
@@ -49,7 +49,7 @@ export function EtapaCurriculo({ curriculo, setCurriculo, carregando, erroServid
     );
   }
 
-  const mensagem = erro || erroServidor;
+  const mensagem = erro || erroAnalise;
 
   return (
     <div className="grid gap-6">

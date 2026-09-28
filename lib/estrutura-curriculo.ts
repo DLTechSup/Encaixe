@@ -1,4 +1,4 @@
-import { TITULOS_SECOES } from "./prompts";
+import { TITULOS_SECOES } from "./constantes";
 import { normalizar } from "./score";
 
 export type BlocoCurriculo =

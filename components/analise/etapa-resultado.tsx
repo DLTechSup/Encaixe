@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, TriangleAlert } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RegraDeOuro } from "@/components/regra-de-ouro";
 import { calcularMatch } from "@/lib/score";
+import { reescreverCurriculo } from "@/lib/reescrever-curriculo";
 import type { AnaliseVaga, LacunaConfirmada, ResultadoReescrita } from "@/lib/tipos";
 import { PainelScore } from "./painel-score";
 import { PalavrasChave } from "./palavras-chave";
@@ -24,7 +24,6 @@ export function EtapaResultado({ analise, curriculo, onVoltar, onNovaAnalise }: 
   const match = useMemo(() => calcularMatch(curriculo, analise.palavras_chave), [curriculo, analise]);
   const [respostas, setRespostas] = useState<Record<string, RespostaLacuna>>({});
   const [gerando, setGerando] = useState(false);
-  const [erro, setErro] = useState("");
   const [resultado, setResultado] = useState<ResultadoReescrita | null>(null);
 
   const scoreDepois = useMemo(
@@ -44,27 +43,10 @@ export function EtapaResultado({ analise, curriculo, onVoltar, onNovaAnalise }: 
       .map(({ termo, r }) => ({ termo, descricao: r!.descricao.trim() }));
 
     setGerando(true);
-    setErro("");
     setResultado(null);
-    try {
-      const resposta = await fetch("/api/reescrever", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          curriculo,
-          cargo: analise.cargo,
-          palavras_chave: analise.palavras_chave,
-          lacunas,
-        }),
-      });
-      const dados = await resposta.json();
-      if (!resposta.ok) throw new Error(dados.erro ?? "Erro ao gerar o currículo.");
-      setResultado(dados as ResultadoReescrita);
-    } catch (e) {
-      setErro(e instanceof Error ? e.message : "Erro ao gerar o currículo.");
-    } finally {
-      setGerando(false);
-    }
+    await new Promise((r) => setTimeout(r, 500));
+    setResultado(reescreverCurriculo({ curriculo, palavras: analise.palavras_chave, confirmadas: lacunas }));
+    setGerando(false);
   }
 
   return (
@@ -92,14 +74,6 @@ export function EtapaResultado({ analise, curriculo, onVoltar, onNovaAnalise }: 
             <Skeleton className="h-40 w-full" />
             <Skeleton className="h-64 w-full" />
           </div>
-        )}
-        {erro && (
-          <Alert variant="destructive">
-            <TriangleAlert aria-hidden="true" />
-            <AlertDescription>
-              <p>{erro}</p>
-            </AlertDescription>
-          </Alert>
         )}
       </div>
 

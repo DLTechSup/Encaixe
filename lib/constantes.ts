@@ -7,3 +7,11 @@ export const MIN_VAGA = 300;
 export const MIN_CURRICULO = 400;
 export const MAX_TEXTO = 30000;
 export const MAX_PALAVRAS = 30;
+
+export const TITULOS_SECOES = [
+  "RESUMO PROFISSIONAL",
+  "EXPERIÊNCIA",
+  "FORMAÇÃO",
+  "HABILIDADES",
+  "CERTIFICAÇÕES E IDIOMAS",
+] as const;
