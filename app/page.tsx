@@ -13,8 +13,8 @@ const PASSOS = [
   },
   {
     icone: FileText,
-    titulo: "Cole seu currículo",
-    texto: "Copie do Word ou do PDF. Mostramos seu percentual de encaixe e as palavras-chave que faltam.",
+    titulo: "Envie seu currículo",
+    texto: "Envie o arquivo (PDF ou Word) ou cole o texto. Mostramos seu percentual de encaixe e as palavras-chave que faltam.",
   },
   {
     icone: FileCheck2,

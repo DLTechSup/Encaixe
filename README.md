@@ -1,6 +1,6 @@
 # Encaixe
 
-Currículo ATS friendly a partir de uma vaga. Cole a vaga (link ou texto) e o seu currículo, veja o percentual de match, as palavras-chave encontradas e as que faltam, e baixe uma versão ajustada em PDF.
+Currículo ATS friendly a partir de uma vaga. Cole a vaga (link ou texto), envie o seu currículo (PDF, Word .docx ou .txt) ou cole o texto, veja o percentual de match, as palavras-chave encontradas e as que faltam, e baixe uma versão ajustada em PDF.
 
 > **Regra de ouro:** o Encaixe melhora como você se apresenta. Ele nunca inventa experiência, habilidade, cargo, empresa, data, número ou certificação que você não tem.
 
@@ -36,6 +36,7 @@ O site fica em `https://<usuário>.github.io/<repositório>/`. Também funciona 
 | Etapa | Onde | Arquivo |
 |---|---|---|
 | Buscar a vaga por link e extrair o texto (JSON-LD ou HTML) | navegador | `lib/extrair-vaga.ts` |
+| Ler o currículo enviado (PDF com pdf.js, .docx com mammoth, .txt) | navegador | `lib/ler-arquivo.ts` |
 | Ler a vaga: seções (requisitos, diferenciais, atividades, benefícios), termos do dicionário e expressões como "experiência com…" (máx. 30 termos) | navegador | `lib/analisar-vaga.ts`, `lib/dicionario.ts` |
 | Comparação e score (peso 3 obrigatório, 1 desejável) | navegador | `lib/score.ts` |
 | Reescrita: seções padrão ATS, experiências da mais recente para a mais antiga, verbos de ação, sinônimos trocados pelo termo exato da vaga | navegador | `lib/reescrever-curriculo.ts` |

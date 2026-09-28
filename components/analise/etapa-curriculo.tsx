@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Contador } from "./contador";
+import { EnvioArquivo } from "./envio-arquivo";
 import { MIN_CURRICULO } from "@/lib/constantes";
 
 interface Props {
@@ -53,9 +54,17 @@ export function EtapaCurriculo({ curriculo, setCurriculo, carregando, erroAnalis
 
   return (
     <div className="grid gap-6">
+      <EnvioArquivo onTexto={setCurriculo} />
+
+      <div className="flex items-center gap-3 text-sm text-muted-foreground" aria-hidden="true">
+        <span className="h-px flex-1 bg-border" />
+        ou cole o texto
+        <span className="h-px flex-1 bg-border" />
+      </div>
+
       <div className="grid gap-2">
         <Label htmlFor="texto-curriculo" className="text-base">
-          Seu currículo
+          Texto do seu currículo
         </Label>
         <Textarea
           id="texto-curriculo"
@@ -67,7 +76,7 @@ export function EtapaCurriculo({ curriculo, setCurriculo, carregando, erroAnalis
           aria-describedby="dica-curriculo contador-curriculo erro-curriculo"
         />
         <p id="dica-curriculo" className="text-sm text-muted-foreground">
-          Copie do seu Word ou PDF. A formatação não importa: nós organizamos.
+          Envie o arquivo acima ou copie do seu Word ou PDF. A formatação não importa: nós organizamos.
         </p>
         <Contador id="contador-curriculo" atual={curriculo.trim().length} minimo={MIN_CURRICULO} />
       </div>
