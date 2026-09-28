@@ -12,7 +12,10 @@ import type { AnaliseVaga, LacunaConfirmada, ResultadoReescrita } from "@/lib/ti
 import { PainelScore } from "./painel-score";
 import { PalavrasChave } from "./palavras-chave";
 import { Lacunas, type RespostaLacuna } from "./lacunas";
-import { CurriculoAjustado } from "./curriculo-ajustado";
+import { CurriculoAjustado, type PassoHistorico } from "./curriculo-ajustado";
+import { Sugestoes } from "./sugestoes";
+import { RevisaoOrtografica } from "./revisao-ortografica";
+import { toast } from "sonner";
 import { Dicas } from "./dicas";
 import { termosProibidos, validarAntiInvencao } from "@/lib/anti-invencao";
 
@@ -22,15 +25,31 @@ interface Props {
   estilo: EstiloCurriculo | null;
   onVoltar: () => void;
   onNovaAnalise: () => void;
+  /** Corrige o texto original (ex.: ortografia antes de gerar o ajustado). */
+  onAlterarOriginal: (texto: string) => void;
+  vaga: string;
 }
 
-export function EtapaResultado({ analise, curriculo, estilo, onVoltar, onNovaAnalise }: Props) {
+export function EtapaResultado({ analise, curriculo, estilo, onVoltar, onNovaAnalise, onAlterarOriginal, vaga }: Props) {
+  // Palavras da vaga e termos da análise não são tratados como erro de ortografia.
+  const extrasOrtografia = useMemo(
+    () => [...analise.palavras_chave.flatMap((p) => [p.termo, ...p.variantes]), ...(vaga.match(/\p{L}+/gu) ?? [])],
+    [analise, vaga]
+  );
   const match = useMemo(() => calcularMatch(curriculo, analise.palavras_chave), [curriculo, analise]);
   const [respostas, setRespostas] = useState<Record<string, RespostaLacuna>>({});
   const [gerando, setGerando] = useState(false);
   const [resultado, setResultado] = useState<ResultadoReescrita | null>(null);
   const [confirmadas, setConfirmadas] = useState<LacunaConfirmada[]>([]);
   const [texto, setTexto] = useState("");
+  const [historico, setHistorico] = useState<PassoHistorico[]>([]);
+
+  function aplicar(novo: string, descricao: string) {
+    if (novo === texto) return;
+    setHistorico((h) => [...h, { texto, descricao }]);
+    setTexto(novo);
+    toast.success(descricao);
+  }
 
   const scoreDepois = useMemo(
     () => (resultado ? calcularMatch(texto, analise.palavras_chave).score : 0),
@@ -66,14 +85,15 @@ export function EtapaResultado({ analise, curriculo, estilo, onVoltar, onNovaAna
     setConfirmadas(lacunas);
     setResultado(novo);
     setTexto(novo.curriculo);
+    setHistorico([]);
     setGerando(false);
   }
 
   return (
     <div className="grid gap-8">
-      <RegraDeOuro className="z-10 sm:sticky sm:top-2" />
+      <RegraDeOuro className="z-30 sm:sticky sm:top-[4.5rem]" />
 
-      <div className="grid gap-4">
+      <div className="grid items-start gap-4 lg:grid-cols-[22rem_minmax(0,1fr)]">
         <PainelScore score={match.score} cargo={analise.cargo} />
         <PalavrasChave encontradas={match.encontradas} faltando={match.faltando} />
       </div>
@@ -101,9 +121,19 @@ export function EtapaResultado({ analise, curriculo, estilo, onVoltar, onNovaAna
         <CurriculoAjustado
           original={curriculo}
           texto={texto}
-          editado={texto !== resultado.curriculo}
+          gerado={resultado.curriculo}
+          historico={historico}
           onEditar={setTexto}
-          onDesfazer={() => setTexto(resultado.curriculo)}
+          onDesfazer={() => {
+            const anterior = historico[historico.length - 1];
+            if (!anterior) return;
+            setTexto(anterior.texto);
+            setHistorico((h) => h.slice(0, -1));
+          }}
+          onRestaurar={() => {
+            setTexto(resultado.curriculo);
+            setHistorico([]);
+          }}
           mudancas={resultado.mudancas}
           avisos={avisos}
           cargo={analise.cargo}
@@ -113,6 +143,17 @@ export function EtapaResultado({ analise, curriculo, estilo, onVoltar, onNovaAna
           onNovaAnalise={onNovaAnalise}
         />
       )}
+
+      {resultado && <Sugestoes texto={texto} palavras={analise.palavras_chave} cargo={analise.cargo} onAplicar={aplicar} />}
+
+      <RevisaoOrtografica
+        texto={resultado ? texto : curriculo}
+        extras={extrasOrtografia}
+        onCorrigir={resultado ? aplicar : (novo, descricao) => {
+          onAlterarOriginal(novo);
+          toast.success(descricao);
+        }}
+      />
 
       <Dicas texto={resultado ? texto : curriculo} palavras={analise.palavras_chave} ajustado={!!resultado} />
 

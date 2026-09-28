@@ -44,6 +44,9 @@ O site fica em `https://<usuário>.github.io/<repositório>/`. Também funciona 
 | Estilo do arquivo enviado: fonte, tamanhos, cores, alinhamento, linha nos títulos e margens | navegador | `lib/estilo.ts`, `lib/extrair-estilo.ts` |
 | Download no formato do original (.docx ou PDF), com o estilo dele, em uma coluna | navegador | `components/analise/curriculo-docx.ts`, `components/analise/curriculo-pdf.tsx` |
 | Dicas para melhorar o currículo, atualizadas enquanto a pessoa edita | navegador | `lib/dicas.ts` |
+| Sugestões comentadas ("Eu faria… Porque…") que a pessoa aplica ou ignora | navegador | `lib/sugestoes.ts`, `lib/verbos.ts` |
+| Visualizador antes × depois, marcando linhas e palavras alteradas | navegador | `lib/diff.ts`, `components/analise/comparador.tsx` |
+| Ortografia (dicionário VERO pt-BR) e escrita (crase, "mas/mais", "há/a"…) | navegador | `lib/ortografia/` |
 
 Para reconhecer mais competências, acrescente entradas em `lib/dicionario.ts` (termo, categoria e variantes com o **mesmo** significado).
 
@@ -68,3 +71,11 @@ As dicas ficam em `lib/dicas.ts`, na lista `REGRAS`. Cada regra é independente:
 ```
 
 Devolva `null` quando estiver tudo certo. Use `nivel: "importante"` só para o que atrapalha a candidatura. As dicas nunca devem sugerir inventar informação. Acrescente um teste em `tests/estilo-e-dicas.test.ts`.
+
+## Como adicionar uma sugestão
+
+As sugestões ficam em `lib/sugestoes.ts`, na lista `GERADORES`. Cada gerador recebe o texto atual (já separado em linhas e seções) e devolve sugestões com `euFaria`, `porque` e as `trocas` de linhas. Elas só podem reescrever, reorganizar ou remover o que já existe: a validação anti-invenção continua valendo depois de aplicar.
+
+## Ortografia
+
+O dicionário de português do Brasil ([VERO](https://pt-br.libreoffice.org/projetos/vero), LGPL-3.0 ou MPL-2.0, pacote `dictionary-pt`) é copiado para `public/dicionario/` no build e baixado pelo navegador só na tela de resultado. A verificação retira prefixos e sufixos como o Hunspell, sem expandir o dicionário, e carrega em menos de meio segundo. Erros comuns que o dicionário aceita (ex.: "experiencia", que existe como verbo) e regras de escrita ficam em `lib/ortografia/erros-comuns.ts`.

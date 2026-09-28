@@ -1,7 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowRight, Copy, Download, FileText, Loader2, Palette, RotateCcw, TriangleAlert, Undo2 } from "lucide-react";
+import {
+  ArrowRight, Columns2, Copy, Download, Eye, FileText, FileType, History, Loader2, Palette, PencilLine,
+  RotateCcw, TriangleAlert, Undo2,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -12,14 +15,26 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { descreverEstilo, type EstiloCurriculo } from "@/lib/estilo";
 import { faixaDoScore } from "@/lib/score";
+import { nomeArquivo } from "@/lib/slug";
 import type { AvisoRevisao } from "@/lib/tipos";
+import { cn } from "@/lib/utils";
+import { baixarBlob } from "./baixar-arquivo";
+import { Comparador } from "./comparador";
+import { PreviaDocumento } from "./previa-documento";
+
+export interface PassoHistorico {
+  texto: string;
+  descricao: string;
+}
 
 interface Props {
   original: string;
   texto: string;
-  editado: boolean;
+  gerado: string;
+  historico: PassoHistorico[];
   onEditar: (texto: string) => void;
   onDesfazer: () => void;
+  onRestaurar: () => void;
   mudancas: string[];
   avisos: AvisoRevisao[];
   cargo: string;
@@ -29,44 +44,26 @@ interface Props {
   onNovaAnalise: () => void;
 }
 
-function TextoOriginal({ texto }: { texto: string }) {
-  return (
-    <div
-      tabIndex={0}
-      role="region"
-      aria-label="Currículo original"
-      className="max-h-[36rem] overflow-auto whitespace-pre-wrap break-words rounded-lg border bg-white p-4 text-sm leading-relaxed outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
-    >
-      {texto}
-    </div>
-  );
-}
-
-function EditorAjustado({ id, texto, onEditar }: { id: string; texto: string; onEditar: (t: string) => void }) {
-  return (
-    <div className="grid gap-1.5">
-      <Label htmlFor={id} className="sr-only">
-        Currículo ajustado (editável)
-      </Label>
-      <Textarea
-        id={id}
-        value={texto}
-        onChange={(e) => onEditar(e.target.value)}
-        className="h-[36rem] resize-y text-sm leading-relaxed [field-sizing:fixed]"
-        aria-describedby="dica-edicao"
-      />
-    </div>
-  );
-}
-
 const COR_FAIXA = {
-  baixo: "text-warning-foreground",
-  medio: "text-primary",
-  alto: "text-success-foreground",
+  baixo: "bg-amber-50 text-warning-foreground border-warning/40",
+  medio: "bg-accent/60 text-accent-foreground border-primary/30",
+  alto: "bg-success/10 text-success-foreground border-success/40",
 };
 
+function Pontuacao({ rotulo, valor }: { rotulo: string; valor: number }) {
+  return (
+    <span className={cn("inline-flex items-baseline gap-1.5 rounded-lg border px-3 py-1.5", COR_FAIXA[faixaDoScore(valor).nivel])}>
+      <span className="text-xs font-medium">{rotulo}</span>
+      <span className="text-xl font-bold tabular-nums">{valor}%</span>
+    </span>
+  );
+}
+
 export function CurriculoAjustado(props: Props) {
-  const { original, texto, editado, onEditar, onDesfazer, mudancas, avisos, cargo, estilo, scoreAntes, scoreDepois, onNovaAnalise } = props;
+  const {
+    original, texto, gerado, historico, onEditar, onDesfazer, onRestaurar, mudancas, avisos, cargo, estilo,
+    scoreAntes, scoreDepois, onNovaAnalise,
+  } = props;
   const [baixando, setBaixando] = useState<"pdf" | "docx" | null>(null);
 
   async function copiar() {
@@ -97,32 +94,30 @@ export function CurriculoAjustado(props: Props) {
     }
   }
 
+  function baixarTxt() {
+    baixarBlob(new Blob([texto], { type: "text/plain;charset=utf-8" }), nomeArquivo(cargo, "pdf").replace(/\.pdf$/, ".txt"));
+    toast.success("Arquivo de texto baixado.");
+  }
+
   const termos = avisos.filter((a) => a.tipo === "termo");
   const numeros = avisos.filter((a) => a.tipo === "numero");
-  const principalWord = estilo?.origem === "docx";
-  const formatos: Array<"pdf" | "docx"> = principalWord ? ["docx", "pdf"] : ["pdf", "docx"];
+  const formatos: Array<"pdf" | "docx"> = estilo?.origem === "docx" ? ["docx", "pdf"] : ["pdf", "docx"];
 
   return (
-    <section aria-labelledby="titulo-ajustado" className="grid gap-5">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <h3 id="titulo-ajustado" tabIndex={-1} className="text-xl font-semibold outline-none">
-          Seu currículo ajustado
-        </h3>
-        <p className="text-lg font-semibold" aria-label={`Antes: ${scoreAntes}%. Depois: ${scoreDepois}%.`}>
-          <span className="text-muted-foreground">Antes: </span>
-          <span className={COR_FAIXA[faixaDoScore(scoreAntes).nivel]}>{scoreAntes}%</span>
-          <ArrowRight className="mx-2 inline size-4 text-muted-foreground" aria-hidden="true" />
-          <span className="text-muted-foreground">Depois: </span>
-          <span className={COR_FAIXA[faixaDoScore(scoreDepois).nivel]}>{scoreDepois}%</span>
+    <section aria-labelledby="titulo-ajustado" className="grid gap-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-sm font-semibold text-primary">Etapa final</p>
+          <h3 id="titulo-ajustado" tabIndex={-1} className="text-2xl font-bold outline-none">
+            Seu currículo ajustado
+          </h3>
+        </div>
+        <p className="flex items-center gap-2" aria-label={`Encaixe antes: ${scoreAntes}%. Depois: ${scoreDepois}%.`}>
+          <Pontuacao rotulo="Antes" valor={scoreAntes} />
+          <ArrowRight className="size-4 text-muted-foreground" aria-hidden="true" />
+          <Pontuacao rotulo="Depois" valor={scoreDepois} />
         </p>
       </div>
-
-      <p className="flex items-start gap-2 text-sm text-muted-foreground">
-        <Palette className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />
-        {estilo
-          ? `O arquivo baixado mantém o estilo do seu currículo: ${descreverEstilo(estilo)}. Em uma coluna, para os sistemas ATS conseguirem ler.`
-          : "Formato padrão para ATS: uma coluna, fonte Helvetica, sem cores ou tabelas. Envie seu currículo como arquivo para manter o seu estilo."}
-      </p>
 
       {avisos.length > 0 && (
         <Alert variant="warning">
@@ -147,90 +142,130 @@ export function CurriculoAjustado(props: Props) {
         </Alert>
       )}
 
-      {mudancas.length > 0 && (
-        <Card className="py-2">
-          <CardContent>
-            <Accordion type="single" collapsible defaultValue="mudancas">
-              <AccordionItem value="mudancas">
-                <AccordionTrigger className="text-base">O que mudamos ({mudancas.length})</AccordionTrigger>
-                <AccordionContent>
-                  <ul className="list-disc space-y-1.5 pl-5 text-muted-foreground">
-                    {mudancas.map((m) => (
-                      <li key={m}>{m}</li>
-                    ))}
-                  </ul>
-                </AccordionContent>
-              </AccordionItem>
-            </Accordion>
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
+        <Card className="gap-4 py-5">
+          <CardContent className="px-4 sm:px-6">
+            <Tabs defaultValue="comparar">
+              <TabsList className="w-full sm:w-fit">
+                <TabsTrigger value="comparar">
+                  <Columns2 aria-hidden="true" /> Comparar
+                </TabsTrigger>
+                <TabsTrigger value="previa">
+                  <Eye aria-hidden="true" /> Prévia
+                </TabsTrigger>
+                <TabsTrigger value="editar">
+                  <PencilLine aria-hidden="true" /> Editar
+                </TabsTrigger>
+              </TabsList>
+              <TabsContent value="comparar" className="pt-2">
+                <Comparador original={original} atual={texto} />
+              </TabsContent>
+              <TabsContent value="previa" className="grid gap-3 pt-2">
+                <p className="flex items-start gap-2 text-sm text-muted-foreground">
+                  <Palette className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />
+                  {estilo
+                    ? `Mantendo o estilo do seu arquivo: ${descreverEstilo(estilo)}. Em uma coluna, para os sistemas ATS lerem.`
+                    : "Formato padrão para ATS: uma coluna, sem cores ou tabelas. Envie o currículo como arquivo para manter o seu estilo."}
+                </p>
+                <PreviaDocumento texto={texto} estilo={estilo} />
+              </TabsContent>
+              <TabsContent value="editar" className="grid gap-2 pt-2">
+                <Label htmlFor="ajustado-editor">Edite à vontade. Score, sugestões, ortografia e dicas se atualizam enquanto você escreve.</Label>
+                <Textarea
+                  id="ajustado-editor"
+                  value={texto}
+                  onChange={(e) => onEditar(e.target.value)}
+                  className="h-[36rem] resize-y font-mono text-sm leading-relaxed [field-sizing:fixed]"
+                />
+              </TabsContent>
+            </Tabs>
           </CardContent>
         </Card>
-      )}
 
-      <p id="dica-edicao" className="text-sm text-muted-foreground">
-        Você pode editar o texto ajustado antes de baixar. O score e as dicas se atualizam enquanto você escreve.
-        {editado && (
-          <Button variant="link" className="ml-1 h-auto p-0 text-sm" onClick={onDesfazer}>
-            <Undo2 aria-hidden="true" />
-            Desfazer minhas edições
+        <aside className="grid gap-4 lg:sticky lg:top-4" aria-label="Salvar e histórico">
+          <Card className="gap-3 py-5">
+            <CardHeader className="px-5">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Download className="size-4 text-primary" aria-hidden="true" /> Salvar currículo
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-2 px-5">
+              {formatos.map((f, i) => (
+                <Button key={f} variant={i === 0 ? "default" : "outline"} onClick={() => baixar(f)} disabled={!!baixando}>
+                  {baixando === f ? (
+                    <Loader2 className="animate-spin" aria-hidden="true" />
+                  ) : f === "pdf" ? (
+                    <Download aria-hidden="true" />
+                  ) : (
+                    <FileText aria-hidden="true" />
+                  )}
+                  {f === "pdf" ? "Baixar PDF" : "Baixar Word (.docx)"}
+                </Button>
+              ))}
+              <div className="grid grid-cols-2 gap-2">
+                <Button variant="outline" onClick={baixarTxt}>
+                  <FileType aria-hidden="true" /> Texto (.txt)
+                </Button>
+                <Button variant="outline" onClick={copiar}>
+                  <Copy aria-hidden="true" /> Copiar
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">PDF e Word em uma coluna, com texto selecionável, prontos para sistemas ATS.</p>
+            </CardContent>
+          </Card>
+
+          <Card className="gap-3 py-5">
+            <CardHeader className="px-5">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <History className="size-4 text-primary" aria-hidden="true" /> Alterações
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-3 px-5 text-sm">
+              {historico.length === 0 ? (
+                <p className="text-muted-foreground">As sugestões e correções que você aplicar aparecem aqui.</p>
+              ) : (
+                <ol className="grid max-h-48 gap-1.5 overflow-auto">
+                  {historico.map((h, i) => (
+                    <li key={i} className="flex gap-2 text-muted-foreground">
+                      <span className="font-semibold text-foreground">{i + 1}.</span> {h.descricao}
+                    </li>
+                  ))}
+                </ol>
+              )}
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" variant="outline" onClick={onDesfazer} disabled={historico.length === 0}>
+                  <Undo2 aria-hidden="true" /> Desfazer última
+                </Button>
+                <Button size="sm" variant="ghost" onClick={onRestaurar} disabled={texto === gerado && historico.length === 0}>
+                  <RotateCcw aria-hidden="true" /> Voltar ao gerado
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {mudancas.length > 0 && (
+            <Card className="py-2">
+              <CardContent className="px-5">
+                <Accordion type="single" collapsible>
+                  <AccordionItem value="mudancas" className="border-b-0">
+                    <AccordionTrigger>O que ajustamos automaticamente ({mudancas.length})</AccordionTrigger>
+                    <AccordionContent>
+                      <ul className="list-disc space-y-1.5 pl-5 text-muted-foreground">
+                        {mudancas.map((m) => (
+                          <li key={m}>{m}</li>
+                        ))}
+                      </ul>
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
+              </CardContent>
+            </Card>
+          )}
+
+          <Button variant="ghost" onClick={onNovaAnalise} className="justify-self-start">
+            <RotateCcw aria-hidden="true" /> Começar nova análise
           </Button>
-        )}
-      </p>
-
-      {/* Desktop: duas colunas */}
-      <div className="hidden gap-4 lg:grid lg:grid-cols-2">
-        <Card className="gap-3 shadow-none">
-          <CardHeader>
-            <CardTitle className="text-base">Original</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <TextoOriginal texto={original} />
-          </CardContent>
-        </Card>
-        <Card className="gap-3 border-primary/40">
-          <CardHeader>
-            <CardTitle className="text-base text-primary">Ajustado (editável)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <EditorAjustado id="ajustado-desktop" texto={texto} onEditar={onEditar} />
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Mobile: abas */}
-      <Tabs defaultValue="ajustado" className="lg:hidden">
-        <TabsList className="w-full">
-          <TabsTrigger value="original">Original</TabsTrigger>
-          <TabsTrigger value="ajustado">Ajustado</TabsTrigger>
-        </TabsList>
-        <TabsContent value="original">
-          <TextoOriginal texto={original} />
-        </TabsContent>
-        <TabsContent value="ajustado">
-          <EditorAjustado id="ajustado-mobile" texto={texto} onEditar={onEditar} />
-        </TabsContent>
-      </Tabs>
-
-      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-        {formatos.map((f, i) => (
-          <Button key={f} size="lg" variant={i === 0 ? "default" : "outline"} onClick={() => baixar(f)} disabled={!!baixando}>
-            {baixando === f ? (
-              <Loader2 className="animate-spin" aria-hidden="true" />
-            ) : f === "pdf" ? (
-              <Download aria-hidden="true" />
-            ) : (
-              <FileText aria-hidden="true" />
-            )}
-            {f === "pdf" ? "Baixar PDF" : "Baixar Word (.docx)"}
-          </Button>
-        ))}
-        <Button size="lg" variant="outline" onClick={copiar}>
-          <Copy aria-hidden="true" />
-          Copiar texto
-        </Button>
-        <Button size="lg" variant="ghost" onClick={onNovaAnalise}>
-          <RotateCcw aria-hidden="true" />
-          Nova análise
-        </Button>
+        </aside>
       </div>
     </section>
   );

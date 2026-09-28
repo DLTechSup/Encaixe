@@ -69,6 +69,11 @@ function lerCabecalho(linhas: string[], blocos: Blocos): string[] {
     for (const fragmento of linha.split(/\s+[|•·–—-]\s+|\s{3,}|\t/)) {
       const f = fragmento.trim();
       if (!f) continue;
+      // "Estado civil: casada", "Nascimento: …": informação curta do cabeçalho, não resumo.
+      if (/^[^:]{2,25}:\s*\S/.test(f) && f.length <= 60) {
+        blocos.contatos.push(f);
+        continue;
+      }
       if (ehContato(f) && f.length > 60) {
         // Contato colado a texto corrido: separa o contato do resto.
         let resto = f;
