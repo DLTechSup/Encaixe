@@ -12,6 +12,20 @@ import { Contador } from "./contador";
 import { MIN_VAGA } from "@/lib/constantes";
 import { buscarVaga } from "@/lib/extrair-vaga";
 
+const SITES: Array<[RegExp, string]> = [
+  [/indeed\./i, "Indeed"],
+  [/linkedin\./i, "LinkedIn"],
+  [/catho\./i, "Catho"],
+  [/gupy\./i, "Gupy"],
+  [/vagas\.com/i, "Vagas.com"],
+  [/infojobs\./i, "InfoJobs"],
+  [/glassdoor\./i, "Glassdoor"],
+];
+
+function nomeDoSite(endereco: string): string {
+  return SITES.find(([re]) => re.test(endereco))?.[1] ?? "";
+}
+
 interface Props {
   vaga: string;
   setVaga: (v: string) => void;
@@ -22,6 +36,7 @@ export function EtapaVaga({ vaga, setVaga, onContinuar }: Props) {
   const [url, setUrl] = useState("");
   const [buscando, setBuscando] = useState(false);
   const [falhou, setFalhou] = useState(false);
+  const [site, setSite] = useState("");
   const [mostrarTexto, setMostrarTexto] = useState(vaga.length > 0);
   const [erro, setErro] = useState("");
 
@@ -46,6 +61,7 @@ export function EtapaVaga({ vaga, setVaga, onContinuar }: Props) {
     setMostrarTexto(true);
 
     if (texto.length < MIN_VAGA) {
+      setSite(nomeDoSite(url));
       setFalhou(true);
       setVaga("");
       document.getElementById("texto-vaga")?.focus();
@@ -115,6 +131,11 @@ export function EtapaVaga({ vaga, setVaga, onContinuar }: Props) {
               <p>
                 Não conseguimos ler essa página (alguns sites bloqueiam o acesso). Copie a descrição da
                 vaga e cole no campo abaixo.
+              </p>
+              <p>
+                <strong>Como copiar{site ? ` no ${site}` : ""}:</strong> abra a vaga, selecione o texto da descrição
+                (do título até o fim dos requisitos) arrastando o mouse ou segurando o dedo no celular, copie
+                (Ctrl+C) e cole aqui (Ctrl+V). A formatação não importa.
               </p>
             </AlertDescription>
           </Alert>

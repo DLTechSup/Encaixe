@@ -21,6 +21,8 @@ export interface LinhaComparada {
   /** Para linhas alteradas: a linha do original e as palavras que mudaram. */
   antes?: string;
   pedacos?: Pedaco[];
+  /** A linha mudou quase toda: mostrar antes e depois inteiros é mais claro que palavra a palavra. */
+  reescrita?: boolean;
 }
 
 export interface Comparacao {
@@ -119,7 +121,10 @@ export function compararCurriculos(original: string, ajustado: string, titulos: 
     });
     if (melhor !== -1 && nota >= 0.4) {
       usadas.add(melhor);
-      return { tipo: "alterada", texto, antes: linhasOriginais[melhor], pedacos: diffPalavras(linhasOriginais[melhor], texto) };
+      const pedacos = diffPalavras(linhasOriginais[melhor], texto);
+      const total = pedacos.reduce((n, p) => n + p.texto.length, 0);
+      const mudou = pedacos.filter((p) => p.tipo !== "igual").reduce((n, p) => n + p.texto.length, 0);
+      return { tipo: "alterada", texto, antes: linhasOriginais[melhor], pedacos, reescrita: mudou / Math.max(total, 1) > 0.55 };
     }
     return { tipo: "nova", texto };
   });

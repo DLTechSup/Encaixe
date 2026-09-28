@@ -14,6 +14,8 @@ import { PalavrasChave } from "./palavras-chave";
 import { Lacunas, type RespostaLacuna } from "./lacunas";
 import { CurriculoAjustado, type PassoHistorico } from "./curriculo-ajustado";
 import { Sugestoes } from "./sugestoes";
+import { NivelVaga } from "./nivel-vaga";
+import { avaliarNivel } from "@/lib/nivel";
 import { RevisaoOrtografica } from "./revisao-ortografica";
 import { toast } from "sonner";
 import { Dicas } from "./dicas";
@@ -43,6 +45,9 @@ export function EtapaResultado({ analise, curriculo, estilo, onVoltar, onNovaAna
   const [confirmadas, setConfirmadas] = useState<LacunaConfirmada[]>([]);
   const [texto, setTexto] = useState("");
   const [historico, setHistorico] = useState<PassoHistorico[]>([]);
+  const nivel = useMemo(() => avaliarNivel({ vaga, cargo: analise.cargo, curriculo }), [vaga, analise, curriculo]);
+  const [nivelEntrada, setNivelEntrada] = useState(false);
+  const proibidos = useMemo(() => termosProibidos(match.faltando, confirmadas), [match, confirmadas]);
 
   function aplicar(novo: string, descricao: string) {
     if (novo === texto) return;
@@ -62,10 +67,10 @@ export function EtapaResultado({ analise, curriculo, estilo, onVoltar, onNovaAna
     return validarAntiInvencao({
       curriculoAjustado: texto,
       curriculoOriginal: curriculo,
-      proibidos: termosProibidos(match.faltando, confirmadas),
+      proibidos,
       confirmadas,
     });
-  }, [resultado, texto, curriculo, match, confirmadas]);
+  }, [resultado, texto, curriculo, proibidos, confirmadas]);
 
   useEffect(() => {
     if (resultado) document.getElementById("titulo-ajustado")?.focus();
@@ -97,6 +102,8 @@ export function EtapaResultado({ analise, curriculo, estilo, onVoltar, onNovaAna
         <PainelScore score={match.score} cargo={analise.cargo} />
         <PalavrasChave encontradas={match.encontradas} faltando={match.faltando} />
       </div>
+
+      <NivelVaga avaliacao={nivel} ativo={nivelEntrada} onAlternar={setNivelEntrada} gerado={!!resultado} />
 
       <Lacunas
         faltando={match.faltando}
@@ -144,7 +151,14 @@ export function EtapaResultado({ analise, curriculo, estilo, onVoltar, onNovaAna
         />
       )}
 
-      {resultado && <Sugestoes texto={texto} palavras={analise.palavras_chave} cargo={analise.cargo} onAplicar={aplicar} />}
+      {resultado && <Sugestoes
+          texto={texto}
+          palavras={analise.palavras_chave}
+          cargo={analise.cargo}
+          nivelEntrada={nivelEntrada}
+          proibidos={proibidos}
+          onAplicar={aplicar}
+        />}
 
       <RevisaoOrtografica
         texto={resultado ? texto : curriculo}

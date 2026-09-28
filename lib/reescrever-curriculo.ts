@@ -299,6 +299,13 @@ function listarItens(linhas: string[]): string[] {
     .filter(Boolean);
 }
 
+/** Termo no meio da frase: "Atendimento ao cliente" -> "atendimento ao cliente"; "Power BI" e "Excel" ficam. */
+export function termoNaFrase(termo: string): string {
+  const palavras = termo.split(" ");
+  if (palavras.length < 2 || /\p{Lu}/u.test(termo.slice(1))) return termo;
+  return termo.charAt(0).toLocaleLowerCase("pt-BR") + termo.slice(1);
+}
+
 function juntarLista(itens: string[]): string {
   if (itens.length <= 1) return itens.join("");
   return `${itens.slice(0, -1).join(", ")} e ${itens[itens.length - 1]}`;
@@ -391,7 +398,7 @@ export function reescreverCurriculo(params: {
   let resumo = s.resumo.map((l) => l.replace(MARCADOR, "")).join(" ").trim();
   if (!resumo) {
     const frases = [
-      conhecimentos.length ? `Profissional com conhecimentos em ${juntarLista(conhecimentos)}.` : "",
+      conhecimentos.length ? `Profissional com conhecimentos em ${juntarLista(conhecimentos.map(termoNaFrase))}.` : "",
       comportamentais.length ? `Destaque para ${juntarLista(comportamentais.map((c) => c.toLowerCase()))}.` : "",
     ].filter(Boolean);
     resumo = frases.join(" ");
@@ -399,7 +406,7 @@ export function reescreverCurriculo(params: {
   } else if (conhecimentos.length) {
     const faltamNoResumo = conhecimentos.filter((t) => !contemPalavraInteira(normalizar(resumo), t)).slice(0, 4);
     if (faltamNoResumo.length) {
-      resumo = `${resumo.replace(/[.\s]*$/, ".")} Conhecimentos em ${juntarLista(faltamNoResumo)}.`;
+      resumo = `${resumo.replace(/[.\s]*$/, ".")} Conhecimentos em ${juntarLista(faltamNoResumo.map(termoNaFrase))}.`;
       mudancas.push("Resumo profissional alinhado à vaga com termos que já aparecem no seu currículo");
     }
   }

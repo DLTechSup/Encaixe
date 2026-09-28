@@ -5,13 +5,16 @@ import { Check, CheckCheck, Lightbulb, Sparkles, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { aplicarSugestao, aplicarTodas, gerarSugestoes, type Sugestao } from "@/lib/sugestoes";
+import { CATEGORIA_NIVEL, aplicarSugestao, aplicarTodas, gerarSugestoes, type Sugestao } from "@/lib/sugestoes";
+import { cn } from "@/lib/utils";
 import type { PalavraChave } from "@/lib/tipos";
 
 interface Props {
   texto: string;
   palavras: PalavraChave[];
   cargo: string;
+  nivelEntrada: boolean;
+  proibidos: PalavraChave[];
   onAplicar: (novoTexto: string, descricao: string) => void;
 }
 
@@ -38,10 +41,14 @@ function Previa({ sugestao }: { sugestao: Sugestao }) {
 }
 
 /** Sugestões comentadas: "Eu faria… porque…", com aplicar ou ignorar. */
-export function Sugestoes({ texto, palavras, cargo, onAplicar }: Props) {
+export function Sugestoes({ texto, palavras, cargo, nivelEntrada, proibidos, onAplicar }: Props) {
   const [ignoradas, setIgnoradas] = useState<Set<string>>(new Set());
-  const todas = useMemo(() => gerarSugestoes({ texto, palavras, cargo }), [texto, palavras, cargo]);
+  const todas = useMemo(
+    () => gerarSugestoes({ texto, palavras, cargo, nivelEntrada, proibidos }),
+    [texto, palavras, cargo, nivelEntrada, proibidos]
+  );
   const visiveis = todas.filter((s) => !ignoradas.has(s.id));
+  const deNivel = visiveis.filter((s) => s.categoria === CATEGORIA_NIVEL);
 
   return (
     <Card id="sugestoes" className="scroll-mt-24">
@@ -64,6 +71,15 @@ export function Sugestoes({ texto, palavras, cargo, onAplicar }: Props) {
           </p>
         ) : (
           <>
+            {deNivel.length > 1 && (
+              <Button
+                className="justify-self-start"
+                onClick={() => onAplicar(aplicarTodas(texto, deNivel), `${deNivel.length} ajustes para a vaga de nível mais simples`)}
+              >
+                <CheckCheck aria-hidden="true" />
+                Aplicar ajustes de nível ({deNivel.length})
+              </Button>
+            )}
             {visiveis.length > 1 && (
               <Button
                 variant="outline"
@@ -76,7 +92,13 @@ export function Sugestoes({ texto, palavras, cargo, onAplicar }: Props) {
             )}
             <ul className="grid gap-3">
               {visiveis.map((s) => (
-                <li key={s.id} className="grid gap-3 rounded-xl border bg-muted/50 p-4">
+                <li
+                  key={s.id}
+                  className={cn(
+                    "grid gap-3 rounded-xl border p-4",
+                    s.categoria === CATEGORIA_NIVEL ? "border-primary/30 bg-accent/30" : "bg-muted/50"
+                  )}
+                >
                   <div className="flex flex-wrap items-center gap-2">
                     <Lightbulb className="size-4 text-primary" aria-hidden="true" />
                     <h4 className="font-semibold">{s.titulo}</h4>

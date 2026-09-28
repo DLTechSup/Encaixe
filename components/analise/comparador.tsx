@@ -24,6 +24,20 @@ function LinhaAjustada({ l }: { l: LinhaComparada }) {
       </p>
     );
   }
+  if (l.reescrita) {
+    return (
+      <div className="rounded-sm bg-amber-50 px-1 -mx-1 shadow-[inset_3px_0_0_var(--warning)]">
+        <p className="text-destructive/80 line-through">
+          <span className="sr-only">Antes: </span>
+          {l.antes}
+        </p>
+        <p className="text-success-foreground">
+          <span className="sr-only">Depois: </span>
+          {l.texto}
+        </p>
+      </div>
+    );
+  }
   return (
     <p className="rounded-sm bg-amber-50 px-1 -mx-1 shadow-[inset_3px_0_0_var(--warning)]">
       <span className="sr-only">Alterado: </span>

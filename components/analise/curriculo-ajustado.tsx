@@ -11,6 +11,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { descreverEstilo, type EstiloCurriculo } from "@/lib/estilo";
@@ -21,6 +22,10 @@ import { cn } from "@/lib/utils";
 import { baixarBlob } from "./baixar-arquivo";
 import { Comparador } from "./comparador";
 import { PreviaDocumento } from "./previa-documento";
+
+type Formato = "pdf" | "docx" | "txt";
+
+const NOME_FORMATO: Record<Formato, string> = { pdf: "PDF", docx: "Word (.docx)", txt: "texto (.txt)" };
 
 export interface PassoHistorico {
   texto: string;
@@ -65,6 +70,15 @@ export function CurriculoAjustado(props: Props) {
     scoreAntes, scoreDepois, onNovaAnalise,
   } = props;
   const [baixando, setBaixando] = useState<"pdf" | "docx" | null>(null);
+  const [aba, setAba] = useState("comparar");
+  // Formato escolhido: abre a revisão final, onde dá para ajustar o texto antes de salvar.
+  const [revisao, setRevisao] = useState<Formato | null>(null);
+
+  async function salvar(formato: Formato) {
+    if (formato === "txt") baixarTxt();
+    else await baixar(formato);
+    setRevisao(null);
+  }
 
   async function copiar() {
     try {
@@ -145,7 +159,7 @@ export function CurriculoAjustado(props: Props) {
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <Card className="gap-4 py-5">
           <CardContent className="px-4 sm:px-6">
-            <Tabs defaultValue="comparar">
+            <Tabs value={aba} onValueChange={setAba}>
               <TabsList className="w-full sm:w-fit">
                 <TabsTrigger value="comparar">
                   <Columns2 aria-hidden="true" /> Comparar
@@ -191,7 +205,7 @@ export function CurriculoAjustado(props: Props) {
             </CardHeader>
             <CardContent className="grid gap-2 px-5">
               {formatos.map((f, i) => (
-                <Button key={f} variant={i === 0 ? "default" : "outline"} onClick={() => baixar(f)} disabled={!!baixando}>
+                <Button key={f} variant={i === 0 ? "default" : "outline"} onClick={() => setRevisao(f)} disabled={!!baixando}>
                   {baixando === f ? (
                     <Loader2 className="animate-spin" aria-hidden="true" />
                   ) : f === "pdf" ? (
@@ -203,14 +217,25 @@ export function CurriculoAjustado(props: Props) {
                 </Button>
               ))}
               <div className="grid grid-cols-2 gap-2">
-                <Button variant="outline" onClick={baixarTxt}>
+                <Button variant="outline" onClick={() => setRevisao("txt")}>
                   <FileType aria-hidden="true" /> Texto (.txt)
                 </Button>
                 <Button variant="outline" onClick={copiar}>
                   <Copy aria-hidden="true" /> Copiar
                 </Button>
               </div>
-              <p className="text-xs text-muted-foreground">PDF e Word em uma coluna, com texto selecionável, prontos para sistemas ATS.</p>
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setAba("editar");
+                  requestAnimationFrame(() => document.getElementById("ajustado-editor")?.focus());
+                }}
+              >
+                <PencilLine aria-hidden="true" /> Editar texto antes de salvar
+              </Button>
+              <p className="text-xs text-muted-foreground">
+                Antes de salvar, você revisa e pode ajustar o texto. PDF e Word saem em uma coluna, prontos para sistemas ATS.
+              </p>
             </CardContent>
           </Card>
 
@@ -267,6 +292,45 @@ export function CurriculoAjustado(props: Props) {
           </Button>
         </aside>
       </div>
+      <Dialog open={revisao !== null} onOpenChange={(aberto) => !aberto && setRevisao(null)}>
+        <DialogContent className="sm:max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Revisão final antes de salvar</DialogTitle>
+            <DialogDescription>
+              Confira o texto e ajuste o que quiser. O arquivo em {revisao ? NOME_FORMATO[revisao] : ""} é gerado com esta versão.
+            </DialogDescription>
+          </DialogHeader>
+          <Label htmlFor="revisao-final" className="sr-only">
+            Texto final do currículo
+          </Label>
+          <Textarea
+            id="revisao-final"
+            value={texto}
+            onChange={(e) => onEditar(e.target.value)}
+            className="h-[50dvh] resize-y text-sm leading-relaxed [field-sizing:fixed]"
+          />
+          <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground" aria-live="polite">
+            <Pontuacao rotulo="Encaixe" valor={scoreDepois} />
+            {avisos.length > 0 ? (
+              <span className="flex items-center gap-1.5 text-warning-foreground">
+                <TriangleAlert className="size-4" aria-hidden="true" />
+                {avisos.length} trecho(s) para revisar: algo que não estava no seu currículo original.
+              </span>
+            ) : (
+              <span>Nada inventado encontrado.</span>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRevisao(null)}>
+              Continuar editando depois
+            </Button>
+            <Button onClick={() => revisao && salvar(revisao)} disabled={!!baixando}>
+              {baixando ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Download aria-hidden="true" />}
+              Salvar {revisao ? NOME_FORMATO[revisao] : ""}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }
