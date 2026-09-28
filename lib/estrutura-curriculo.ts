@@ -59,3 +59,18 @@ export function textoSeguroParaPdf(texto: string): string {
     })
     .join("");
 }
+
+const TITULOS_EXIBICAO: Record<string, string> = {
+  "resumo profissional": "Resumo profissional",
+  experiencia: "Experiência",
+  formacao: "Formação",
+  habilidades: "Habilidades",
+  "certificacoes e idiomas": "Certificações e idiomas",
+};
+
+/** Título de seção em maiúsculas ou no formato "Experiência", conforme o estilo do original. */
+export function tituloExibido(titulo: string, maiusculo: boolean): string {
+  if (maiusculo) return titulo.toUpperCase();
+  const n = normalizar(titulo);
+  return TITULOS_EXIBICAO[n] ?? titulo.charAt(0).toUpperCase() + titulo.slice(1).toLowerCase();
+}

@@ -7,29 +7,46 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { RegraDeOuro } from "@/components/regra-de-ouro";
 import { calcularMatch } from "@/lib/score";
 import { reescreverCurriculo } from "@/lib/reescrever-curriculo";
+import type { EstiloCurriculo } from "@/lib/estilo";
 import type { AnaliseVaga, LacunaConfirmada, ResultadoReescrita } from "@/lib/tipos";
 import { PainelScore } from "./painel-score";
 import { PalavrasChave } from "./palavras-chave";
 import { Lacunas, type RespostaLacuna } from "./lacunas";
 import { CurriculoAjustado } from "./curriculo-ajustado";
+import { Dicas } from "./dicas";
+import { termosProibidos, validarAntiInvencao } from "@/lib/anti-invencao";
 
 interface Props {
   analise: AnaliseVaga;
   curriculo: string;
+  estilo: EstiloCurriculo | null;
   onVoltar: () => void;
   onNovaAnalise: () => void;
 }
 
-export function EtapaResultado({ analise, curriculo, onVoltar, onNovaAnalise }: Props) {
+export function EtapaResultado({ analise, curriculo, estilo, onVoltar, onNovaAnalise }: Props) {
   const match = useMemo(() => calcularMatch(curriculo, analise.palavras_chave), [curriculo, analise]);
   const [respostas, setRespostas] = useState<Record<string, RespostaLacuna>>({});
   const [gerando, setGerando] = useState(false);
   const [resultado, setResultado] = useState<ResultadoReescrita | null>(null);
+  const [confirmadas, setConfirmadas] = useState<LacunaConfirmada[]>([]);
+  const [texto, setTexto] = useState("");
 
   const scoreDepois = useMemo(
-    () => (resultado ? calcularMatch(resultado.curriculo, analise.palavras_chave).score : 0),
-    [resultado, analise]
+    () => (resultado ? calcularMatch(texto, analise.palavras_chave).score : 0),
+    [resultado, texto, analise]
   );
+
+  // A validação anti-invenção continua valendo para as edições feitas na tela.
+  const avisos = useMemo(() => {
+    if (!resultado) return [];
+    return validarAntiInvencao({
+      curriculoAjustado: texto,
+      curriculoOriginal: curriculo,
+      proibidos: termosProibidos(match.faltando, confirmadas),
+      confirmadas,
+    });
+  }, [resultado, texto, curriculo, match, confirmadas]);
 
   useEffect(() => {
     if (resultado) document.getElementById("titulo-ajustado")?.focus();
@@ -45,7 +62,10 @@ export function EtapaResultado({ analise, curriculo, onVoltar, onNovaAnalise }: 
     setGerando(true);
     setResultado(null);
     await new Promise((r) => setTimeout(r, 500));
-    setResultado(reescreverCurriculo({ curriculo, palavras: analise.palavras_chave, confirmadas: lacunas }));
+    const novo = reescreverCurriculo({ curriculo, palavras: analise.palavras_chave, confirmadas: lacunas });
+    setConfirmadas(lacunas);
+    setResultado(novo);
+    setTexto(novo.curriculo);
     setGerando(false);
   }
 
@@ -80,13 +100,21 @@ export function EtapaResultado({ analise, curriculo, onVoltar, onNovaAnalise }: 
       {resultado && (
         <CurriculoAjustado
           original={curriculo}
-          resultado={resultado}
+          texto={texto}
+          editado={texto !== resultado.curriculo}
+          onEditar={setTexto}
+          onDesfazer={() => setTexto(resultado.curriculo)}
+          mudancas={resultado.mudancas}
+          avisos={avisos}
           cargo={analise.cargo}
+          estilo={estilo}
           scoreAntes={match.score}
           scoreDepois={scoreDepois}
           onNovaAnalise={onNovaAnalise}
         />
       )}
+
+      <Dicas texto={resultado ? texto : curriculo} palavras={analise.palavras_chave} ajustado={!!resultado} />
 
       <div>
         <Button variant="outline" onClick={onVoltar}>

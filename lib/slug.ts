@@ -10,6 +10,10 @@ export function slugificar(texto: string): string {
     .replace(/-+$/g, "");
 }
 
+export function nomeArquivo(cargo: string, extensao: "pdf" | "docx"): string {
+  return `curriculo-${slugificar(cargo) || "ajustado"}.${extensao}`;
+}
+
 export function nomeArquivoPdf(cargo: string): string {
   const slug = slugificar(cargo);
   return `curriculo-${slug || "ajustado"}.pdf`;

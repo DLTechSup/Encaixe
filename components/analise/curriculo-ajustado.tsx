@@ -1,36 +1,60 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowRight, Copy, Download, Loader2, RotateCcw, TriangleAlert } from "lucide-react";
+import { ArrowRight, Copy, Download, FileText, Loader2, Palette, RotateCcw, TriangleAlert, Undo2 } from "lucide-react";
 import { toast } from "sonner";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
+import { descreverEstilo, type EstiloCurriculo } from "@/lib/estilo";
 import { faixaDoScore } from "@/lib/score";
-import type { ResultadoReescrita } from "@/lib/tipos";
-import { cn } from "@/lib/utils";
-import { baixarPdf } from "./curriculo-pdf";
+import type { AvisoRevisao } from "@/lib/tipos";
 
 interface Props {
   original: string;
-  resultado: ResultadoReescrita;
+  texto: string;
+  editado: boolean;
+  onEditar: (texto: string) => void;
+  onDesfazer: () => void;
+  mudancas: string[];
+  avisos: AvisoRevisao[];
   cargo: string;
+  estilo: EstiloCurriculo | null;
   scoreAntes: number;
   scoreDepois: number;
   onNovaAnalise: () => void;
 }
 
-function TextoCurriculo({ texto, rotulo }: { texto: string; rotulo: string }) {
+function TextoOriginal({ texto }: { texto: string }) {
   return (
     <div
       tabIndex={0}
       role="region"
-      aria-label={rotulo}
+      aria-label="Currículo original"
       className="max-h-[36rem] overflow-auto whitespace-pre-wrap break-words rounded-lg border bg-white p-4 text-sm leading-relaxed outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
     >
       {texto}
+    </div>
+  );
+}
+
+function EditorAjustado({ id, texto, onEditar }: { id: string; texto: string; onEditar: (t: string) => void }) {
+  return (
+    <div className="grid gap-1.5">
+      <Label htmlFor={id} className="sr-only">
+        Currículo ajustado (editável)
+      </Label>
+      <Textarea
+        id={id}
+        value={texto}
+        onChange={(e) => onEditar(e.target.value)}
+        className="h-[36rem] resize-y text-sm leading-relaxed [field-sizing:fixed]"
+        aria-describedby="dica-edicao"
+      />
     </div>
   );
 }
@@ -41,33 +65,42 @@ const COR_FAIXA = {
   alto: "text-success-foreground",
 };
 
-export function CurriculoAjustado({ original, resultado, cargo, scoreAntes, scoreDepois, onNovaAnalise }: Props) {
-  const [baixando, setBaixando] = useState(false);
+export function CurriculoAjustado(props: Props) {
+  const { original, texto, editado, onEditar, onDesfazer, mudancas, avisos, cargo, estilo, scoreAntes, scoreDepois, onNovaAnalise } = props;
+  const [baixando, setBaixando] = useState<"pdf" | "docx" | null>(null);
 
   async function copiar() {
     try {
-      await navigator.clipboard.writeText(resultado.curriculo);
+      await navigator.clipboard.writeText(texto);
       toast.success("Texto copiado. Agora é só colar onde precisar.");
     } catch {
       toast.error("Não foi possível copiar. Selecione o texto e copie manualmente.");
     }
   }
 
-  async function baixar() {
-    setBaixando(true);
+  async function baixar(formato: "pdf" | "docx") {
+    setBaixando(formato);
     try {
-      await baixarPdf(resultado.curriculo, cargo);
-      toast.success("PDF baixado. Confira a pasta de downloads.");
+      if (formato === "pdf") {
+        const { baixarPdf } = await import("./curriculo-pdf");
+        await baixarPdf(texto, cargo, estilo ?? undefined);
+      } else {
+        const { baixarDocx } = await import("./curriculo-docx");
+        await baixarDocx(texto, cargo, estilo ?? undefined);
+      }
+      toast.success(`${formato === "pdf" ? "PDF" : "Arquivo do Word"} baixado. Confira a pasta de downloads.`);
     } catch (e) {
       console.error(e);
-      toast.error("Não foi possível gerar o PDF. Tente novamente.");
+      toast.error("Não foi possível gerar o arquivo. Tente novamente.");
     } finally {
-      setBaixando(false);
+      setBaixando(null);
     }
   }
 
-  const termos = resultado.avisos.filter((a) => a.tipo === "termo");
-  const numeros = resultado.avisos.filter((a) => a.tipo === "numero");
+  const termos = avisos.filter((a) => a.tipo === "termo");
+  const numeros = avisos.filter((a) => a.tipo === "numero");
+  const principalWord = estilo?.origem === "docx";
+  const formatos: Array<"pdf" | "docx"> = principalWord ? ["docx", "pdf"] : ["pdf", "docx"];
 
   return (
     <section aria-labelledby="titulo-ajustado" className="grid gap-5">
@@ -84,7 +117,14 @@ export function CurriculoAjustado({ original, resultado, cargo, scoreAntes, scor
         </p>
       </div>
 
-      {resultado.avisos.length > 0 && (
+      <p className="flex items-start gap-2 text-sm text-muted-foreground">
+        <Palette className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />
+        {estilo
+          ? `O arquivo baixado mantém o estilo do seu currículo: ${descreverEstilo(estilo)}. Em uma coluna, para os sistemas ATS conseguirem ler.`
+          : "Formato padrão para ATS: uma coluna, fonte Helvetica, sem cores ou tabelas. Envie seu currículo como arquivo para manter o seu estilo."}
+      </p>
+
+      {avisos.length > 0 && (
         <Alert variant="warning">
           <TriangleAlert aria-hidden="true" />
           <AlertTitle>Revise estes trechos antes de enviar</AlertTitle>
@@ -107,17 +147,15 @@ export function CurriculoAjustado({ original, resultado, cargo, scoreAntes, scor
         </Alert>
       )}
 
-      {resultado.mudancas.length > 0 && (
+      {mudancas.length > 0 && (
         <Card className="py-2">
           <CardContent>
             <Accordion type="single" collapsible defaultValue="mudancas">
               <AccordionItem value="mudancas">
-                <AccordionTrigger className="text-base">
-                  O que mudamos ({resultado.mudancas.length})
-                </AccordionTrigger>
+                <AccordionTrigger className="text-base">O que mudamos ({mudancas.length})</AccordionTrigger>
                 <AccordionContent>
                   <ul className="list-disc space-y-1.5 pl-5 text-muted-foreground">
-                    {resultado.mudancas.map((m) => (
+                    {mudancas.map((m) => (
                       <li key={m}>{m}</li>
                     ))}
                   </ul>
@@ -128,6 +166,16 @@ export function CurriculoAjustado({ original, resultado, cargo, scoreAntes, scor
         </Card>
       )}
 
+      <p id="dica-edicao" className="text-sm text-muted-foreground">
+        Você pode editar o texto ajustado antes de baixar. O score e as dicas se atualizam enquanto você escreve.
+        {editado && (
+          <Button variant="link" className="ml-1 h-auto p-0 text-sm" onClick={onDesfazer}>
+            <Undo2 aria-hidden="true" />
+            Desfazer minhas edições
+          </Button>
+        )}
+      </p>
+
       {/* Desktop: duas colunas */}
       <div className="hidden gap-4 lg:grid lg:grid-cols-2">
         <Card className="gap-3 shadow-none">
@@ -135,15 +183,15 @@ export function CurriculoAjustado({ original, resultado, cargo, scoreAntes, scor
             <CardTitle className="text-base">Original</CardTitle>
           </CardHeader>
           <CardContent>
-            <TextoCurriculo texto={original} rotulo="Currículo original" />
+            <TextoOriginal texto={original} />
           </CardContent>
         </Card>
         <Card className="gap-3 border-primary/40">
           <CardHeader>
-            <CardTitle className="text-base text-primary">Ajustado</CardTitle>
+            <CardTitle className="text-base text-primary">Ajustado (editável)</CardTitle>
           </CardHeader>
           <CardContent>
-            <TextoCurriculo texto={resultado.curriculo} rotulo="Currículo ajustado" />
+            <EditorAjustado id="ajustado-desktop" texto={texto} onEditar={onEditar} />
           </CardContent>
         </Card>
       </div>
@@ -155,18 +203,26 @@ export function CurriculoAjustado({ original, resultado, cargo, scoreAntes, scor
           <TabsTrigger value="ajustado">Ajustado</TabsTrigger>
         </TabsList>
         <TabsContent value="original">
-          <TextoCurriculo texto={original} rotulo="Currículo original" />
+          <TextoOriginal texto={original} />
         </TabsContent>
         <TabsContent value="ajustado">
-          <TextoCurriculo texto={resultado.curriculo} rotulo="Currículo ajustado" />
+          <EditorAjustado id="ajustado-mobile" texto={texto} onEditar={onEditar} />
         </TabsContent>
       </Tabs>
 
-      <div className={cn("flex flex-col gap-3 sm:flex-row sm:flex-wrap")}>
-        <Button size="lg" onClick={baixar} disabled={baixando}>
-          {baixando ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Download aria-hidden="true" />}
-          Baixar PDF
-        </Button>
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+        {formatos.map((f, i) => (
+          <Button key={f} size="lg" variant={i === 0 ? "default" : "outline"} onClick={() => baixar(f)} disabled={!!baixando}>
+            {baixando === f ? (
+              <Loader2 className="animate-spin" aria-hidden="true" />
+            ) : f === "pdf" ? (
+              <Download aria-hidden="true" />
+            ) : (
+              <FileText aria-hidden="true" />
+            )}
+            {f === "pdf" ? "Baixar PDF" : "Baixar Word (.docx)"}
+          </Button>
+        ))}
         <Button size="lg" variant="outline" onClick={copiar}>
           <Copy aria-hidden="true" />
           Copiar texto

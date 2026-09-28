@@ -40,7 +40,31 @@ O site fica em `https://<usuário>.github.io/<repositório>/`. Também funciona 
 | Ler a vaga: seções (requisitos, diferenciais, atividades, benefícios), termos do dicionário e expressões como "experiência com…" (máx. 30 termos) | navegador | `lib/analisar-vaga.ts`, `lib/dicionario.ts` |
 | Comparação e score (peso 3 obrigatório, 1 desejável) | navegador | `lib/score.ts` |
 | Reescrita: seções padrão ATS, experiências da mais recente para a mais antiga, verbos de ação, sinônimos trocados pelo termo exato da vaga | navegador | `lib/reescrever-curriculo.ts` |
-| Validação anti-invenção (remove menções não confirmadas em listas e avisa o que sobrar) | navegador | `lib/anti-invencao.ts` |
-| PDF A4, Helvetica, uma coluna, margens de 2 cm | navegador | `components/analise/curriculo-pdf.tsx` |
+| Validação anti-invenção (remove menções não confirmadas em listas e avisa o que sobrar), também sobre as edições feitas na tela | navegador | `lib/anti-invencao.ts` |
+| Estilo do arquivo enviado: fonte, tamanhos, cores, alinhamento, linha nos títulos e margens | navegador | `lib/estilo.ts`, `lib/extrair-estilo.ts` |
+| Download no formato do original (.docx ou PDF), com o estilo dele, em uma coluna | navegador | `components/analise/curriculo-docx.ts`, `components/analise/curriculo-pdf.tsx` |
+| Dicas para melhorar o currículo, atualizadas enquanto a pessoa edita | navegador | `lib/dicas.ts` |
 
 Para reconhecer mais competências, acrescente entradas em `lib/dicionario.ts` (termo, categoria e variantes com o **mesmo** significado).
+
+## Estilo do currículo
+
+Quando a pessoa envia um .docx ou PDF, o Encaixe lê a identidade visual (fonte, tamanhos do nome, dos títulos e do texto, cores, alinhamento do nome, linha abaixo dos títulos e margens) e gera o currículo ajustado com ela, sempre em uma coluna, sem tabelas nem imagens, para continuar legível pelos sistemas ATS. Cores muito claras viram preto.
+
+- **Word (.docx):** usa exatamente o nome da fonte original.
+- **PDF:** fontes comuns são trocadas por equivalentes gratuitas do [Fontsource](https://fontsource.org), carregadas do jsDelivr (ex.: Calibri → Carlito, Cambria → Caladea, Georgia → Gelasio). Sem equivalente ou sem internet, usa Helvetica, Times ou Courier conforme a família. A tabela fica em `lib/estilo.ts` (`EQUIVALENTES`).
+
+## Como adicionar uma dica
+
+As dicas ficam em `lib/dicas.ts`, na lista `REGRAS`. Cada regra é independente:
+
+```ts
+{
+  id: "minha-regra",
+  nome: "O que está sendo verificado",
+  verificar: ({ texto, linhas, topicos, secoes, palavras }) =>
+    condicaoOk ? null : { nivel: "sugestao", mensagem: "Como melhorar", trechos: ["trecho do currículo"] },
+}
+```
+
+Devolva `null` quando estiver tudo certo. Use `nivel: "importante"` só para o que atrapalha a candidatura. As dicas nunca devem sugerir inventar informação. Acrescente um teste em `tests/estilo-e-dicas.test.ts`.

@@ -5,18 +5,20 @@ import { CheckCircle2, FileUp, Loader2, TriangleAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ErroLeitura, TIPOS_ACEITOS, lerCurriculoDeArquivo } from "@/lib/ler-arquivo";
+import { descreverEstilo, type EstiloCurriculo } from "@/lib/estilo";
 import { cn } from "@/lib/utils";
 
 interface Props {
-  onTexto: (texto: string) => void;
+  onArquivo: (texto: string, estilo: EstiloCurriculo | null) => void;
 }
 
 /** Envio do currículo em PDF, Word (.docx) ou .txt. O arquivo é lido no navegador. */
-export function EnvioArquivo({ onTexto }: Props) {
+export function EnvioArquivo({ onArquivo }: Props) {
   const entrada = useRef<HTMLInputElement>(null);
   const [lendo, setLendo] = useState(false);
   const [arrastando, setArrastando] = useState(false);
   const [lido, setLido] = useState("");
+  const [estiloLido, setEstiloLido] = useState<EstiloCurriculo | null>(null);
   const [erro, setErro] = useState("");
 
   async function processar(arquivo: File | undefined) {
@@ -25,9 +27,10 @@ export function EnvioArquivo({ onTexto }: Props) {
     setErro("");
     setLido("");
     try {
-      const texto = await lerCurriculoDeArquivo(arquivo);
-      onTexto(texto);
+      const { texto, estilo } = await lerCurriculoDeArquivo(arquivo);
+      onArquivo(texto, estilo);
       setLido(arquivo.name);
+      setEstiloLido(estilo);
     } catch (e) {
       if (!(e instanceof ErroLeitura)) console.error(e);
       setErro(
@@ -89,6 +92,9 @@ export function EnvioArquivo({ onTexto }: Props) {
             <CheckCircle2 className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
             <span>
               Lemos o arquivo <strong className="break-all">{lido}</strong>. Confira o texto abaixo e ajuste se precisar.
+              {estiloLido && (
+                <> O currículo ajustado vai manter o estilo do seu arquivo ({descreverEstilo(estiloLido)}).</>
+              )}
             </span>
           </p>
         )}

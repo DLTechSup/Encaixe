@@ -1,3 +1,5 @@
+import type { EstiloCurriculo } from "./estilo";
+
 /**
  * Lê o currículo enviado como arquivo, inteiramente no navegador.
  * Nada é enviado para servidor algum.
@@ -7,6 +9,12 @@ export const TAMANHO_MAXIMO_ARQUIVO = 10 * 1024 * 1024;
 export const TIPOS_ACEITOS = ".pdf,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain";
 
 export class ErroLeitura extends Error {}
+
+export interface ArquivoLido {
+  texto: string;
+  /** Identidade visual do arquivo (null para .txt ou se não der para ler). */
+  estilo: EstiloCurriculo | null;
+}
 
 function extensao(nome: string) {
   return nome.toLowerCase().split(".").pop() ?? "";
@@ -39,8 +47,8 @@ export function montarLinhasPdf(itens: ItemTexto[]): string {
   return texto;
 }
 
-async function lerPdf(arquivo: File): Promise<string> {
-  const pdfjs = await import("pdfjs-dist");
+async function lerPdf(arquivo: File): Promise<ArquivoLido> {
+  const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
   pdfjs.GlobalWorkerOptions.workerSrc = `${process.env.NEXT_PUBLIC_BASE_PATH || ""}/pdf.worker.min.js`;
   const dados = new Uint8Array(await arquivo.arrayBuffer());
   const tarefa = pdfjs.getDocument({ data: dados });
@@ -53,24 +61,42 @@ async function lerPdf(arquivo: File): Promise<string> {
     }
     throw new ErroLeitura("Não conseguimos abrir esse PDF. Tente outro arquivo ou cole o texto abaixo.");
   }
-  const paginas: string[] = [];
+  const textos: string[] = [];
+  const paginas = [];
   for (let i = 1; i <= doc.numPages; i++) {
     const pagina = await doc.getPage(i);
+    if (i <= 2) paginas.push(pagina);
     const conteudo = await pagina.getTextContent();
-    paginas.push(montarLinhasPdf(conteudo.items as ItemTexto[]));
+    textos.push(montarLinhasPdf(conteudo.items as ItemTexto[]));
+  }
+  let estilo: EstiloCurriculo | null = null;
+  try {
+    const { estiloDoPdf } = await import("./extrair-estilo");
+    estilo = await estiloDoPdf(pdfjs, paginas);
+  } catch (e) {
+    console.warn("Não foi possível ler o estilo do PDF", e);
   }
   await tarefa.destroy();
-  return paginas.join("\n\n");
+  return { texto: textos.join("\n\n"), estilo };
 }
 
-async function lerDocx(arquivo: File): Promise<string> {
+async function lerDocx(arquivo: File): Promise<ArquivoLido> {
   const mammoth = await import("mammoth");
+  const dados = await arquivo.arrayBuffer();
+  let texto: string;
   try {
-    const { value } = await mammoth.extractRawText({ arrayBuffer: await arquivo.arrayBuffer() });
-    return value;
+    texto = (await mammoth.extractRawText({ arrayBuffer: dados })).value;
   } catch {
     throw new ErroLeitura("Não conseguimos abrir esse arquivo do Word. Tente salvar como PDF ou cole o texto abaixo.");
   }
+  let estilo: EstiloCurriculo | null = null;
+  try {
+    const { estiloDoDocx } = await import("./extrair-estilo");
+    estilo = await estiloDoDocx(dados);
+  } catch (e) {
+    console.warn("Não foi possível ler o estilo do Word", e);
+  }
+  return { texto, estilo };
 }
 
 /** Normaliza espaços e quebras de linha do texto extraído. */
@@ -84,26 +110,26 @@ export function limparTextoExtraido(texto: string): string {
     .trim();
 }
 
-export async function lerCurriculoDeArquivo(arquivo: File): Promise<string> {
+export async function lerCurriculoDeArquivo(arquivo: File): Promise<ArquivoLido> {
   if (arquivo.size > TAMANHO_MAXIMO_ARQUIVO) {
     throw new ErroLeitura("O arquivo passa de 10 MB. Envie um arquivo menor ou cole o texto abaixo.");
   }
   const ext = extensao(arquivo.name);
-  let texto: string;
-  if (ext === "pdf" || arquivo.type === "application/pdf") texto = await lerPdf(arquivo);
-  else if (ext === "docx") texto = await lerDocx(arquivo);
-  else if (ext === "txt" || arquivo.type === "text/plain") texto = await arquivo.text();
+  let lido: ArquivoLido;
+  if (ext === "pdf" || arquivo.type === "application/pdf") lido = await lerPdf(arquivo);
+  else if (ext === "docx") lido = await lerDocx(arquivo);
+  else if (ext === "txt" || arquivo.type === "text/plain") lido = { texto: await arquivo.text(), estilo: null };
   else if (ext === "doc") {
     throw new ErroLeitura("Arquivos .doc (Word antigo) não são suportados. Salve como .docx ou PDF, ou cole o texto abaixo.");
   } else {
     throw new ErroLeitura("Formato não suportado. Envie um PDF, Word (.docx) ou .txt, ou cole o texto abaixo.");
   }
 
-  const limpo = limparTextoExtraido(texto);
+  const limpo = limparTextoExtraido(lido.texto);
   if (limpo.length < 50) {
     throw new ErroLeitura(
       "Não encontramos texto nesse arquivo. Se ele for uma imagem ou um PDF digitalizado, copie o texto e cole abaixo."
     );
   }
-  return limpo;
+  return { texto: limpo, estilo: lido.estilo };
 }

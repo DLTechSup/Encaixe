@@ -22,7 +22,7 @@ const TITULOS_CV: Array<[Secao, string[]]> = [
 
 const MAPA_TITULOS = new Map<string, Secao>(TITULOS_CV.flatMap(([s, ts]) => ts.map((t) => [t, s] as const)));
 
-function secaoDoTitulo(linha: string): Secao | null {
+export function secaoDoTitulo(linha: string): Secao | null {
   const limpa = linha.replace(/^[#*\s]+|[:：*\s]+$/g, "");
   if (!limpa || limpa.length > 45 || /\d/.test(limpa)) return null;
   return MAPA_TITULOS.get(normalizar(limpa)) ?? null;

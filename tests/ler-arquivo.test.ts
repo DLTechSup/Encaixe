@@ -23,7 +23,7 @@ describe("lerCurriculoDeArquivo", () => {
   it("lê .txt", async () => {
     const texto = "Maria Souza\n" + "Experiência com SQL. ".repeat(5);
     const arquivo = new File([texto], "cv.txt", { type: "text/plain" });
-    expect(await lerCurriculoDeArquivo(arquivo)).toBe(texto.trim());
+    expect(await lerCurriculoDeArquivo(arquivo)).toEqual({ texto: texto.trim(), estilo: null });
   });
 
   it("recusa .doc antigo e formatos desconhecidos com mensagem clara", async () => {

@@ -5,6 +5,7 @@ import { Lock } from "lucide-react";
 import { AVISO_PRIVACIDADE } from "@/lib/constantes";
 import type { AnaliseVaga } from "@/lib/tipos";
 import { analisarVaga } from "@/lib/analisar-vaga";
+import type { EstiloCurriculo } from "@/lib/estilo";
 import { IndicadorEtapas } from "./indicador-etapas";
 import { EtapaVaga } from "./etapa-vaga";
 import { EtapaCurriculo } from "./etapa-curriculo";
@@ -23,6 +24,7 @@ export function FluxoAnalise() {
   const [etapa, setEtapa] = useState<Etapa>(1);
   const [vaga, setVaga] = useState("");
   const [curriculo, setCurriculo] = useState("");
+  const [estilo, setEstilo] = useState<EstiloCurriculo | null>(null);
   const [analise, setAnalise] = useState<AnaliseVaga | null>(null);
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState("");
@@ -60,6 +62,7 @@ export function FluxoAnalise() {
   function novaAnalise() {
     setVaga("");
     setCurriculo("");
+    setEstilo(null);
     setAnalise(null);
     setErro("");
     setEtapa(1);
@@ -87,6 +90,7 @@ export function FluxoAnalise() {
         <EtapaCurriculo
           curriculo={curriculo}
           setCurriculo={setCurriculo}
+          setEstilo={setEstilo}
           carregando={carregando}
           erroAnalise={erro}
           onVoltar={() => setEtapa(1)}
@@ -98,6 +102,7 @@ export function FluxoAnalise() {
           key={chaveResultado}
           analise={analise}
           curriculo={curriculo}
+          estilo={estilo}
           onVoltar={() => setEtapa(2)}
           onNovaAnalise={novaAnalise}
         />

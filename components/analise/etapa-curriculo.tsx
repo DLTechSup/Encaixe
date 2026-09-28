@@ -8,18 +8,20 @@ import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Contador } from "./contador";
 import { EnvioArquivo } from "./envio-arquivo";
+import type { EstiloCurriculo } from "@/lib/estilo";
 import { MIN_CURRICULO } from "@/lib/constantes";
 
 interface Props {
   curriculo: string;
   setCurriculo: (v: string) => void;
+  setEstilo: (e: EstiloCurriculo | null) => void;
   carregando: boolean;
   erroAnalise: string;
   onVoltar: () => void;
   onAnalisar: () => void;
 }
 
-export function EtapaCurriculo({ curriculo, setCurriculo, carregando, erroAnalise, onVoltar, onAnalisar }: Props) {
+export function EtapaCurriculo({ curriculo, setCurriculo, setEstilo, carregando, erroAnalise, onVoltar, onAnalisar }: Props) {
   const [erro, setErro] = useState("");
 
   function analisar() {
@@ -54,7 +56,12 @@ export function EtapaCurriculo({ curriculo, setCurriculo, carregando, erroAnalis
 
   return (
     <div className="grid gap-6">
-      <EnvioArquivo onTexto={setCurriculo} />
+      <EnvioArquivo
+        onArquivo={(texto, estilo) => {
+          setCurriculo(texto);
+          setEstilo(estilo);
+        }}
+      />
 
       <div className="flex items-center gap-3 text-sm text-muted-foreground" aria-hidden="true">
         <span className="h-px flex-1 bg-border" />
@@ -69,7 +76,11 @@ export function EtapaCurriculo({ curriculo, setCurriculo, carregando, erroAnalis
         <Textarea
           id="texto-curriculo"
           value={curriculo}
-          onChange={(e) => setCurriculo(e.target.value)}
+          onChange={(e) => {
+            setCurriculo(e.target.value);
+            // Texto apagado: o estilo do arquivo anterior deixa de valer.
+            if (!e.target.value.trim()) setEstilo(null);
+          }}
           placeholder="Cole aqui o texto completo do seu currículo"
           className="min-h-80 max-h-[65vh]"
           aria-invalid={(!!erro && curriculo.trim().length < MIN_CURRICULO) || undefined}
