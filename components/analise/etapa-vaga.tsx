@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Contador } from "./contador";
-import { MIN_VAGA } from "@/lib/constantes";
 
 interface Props {
   vaga: string;
@@ -19,8 +18,8 @@ export function EtapaVaga({ vaga, setVaga, onContinuar }: Props) {
   const [erro, setErro] = useState("");
 
   function continuar() {
-    if (vaga.trim().length < MIN_VAGA) {
-      setErro(`A descrição da vaga precisa ter pelo menos ${MIN_VAGA} caracteres. Copie também as atividades e os requisitos.`);
+    if (!vaga.trim()) {
+      setErro("Cole o texto da vaga para continuar.");
       document.getElementById("texto-vaga")?.focus();
       return;
     }
@@ -28,7 +27,7 @@ export function EtapaVaga({ vaga, setVaga, onContinuar }: Props) {
     onContinuar();
   }
 
-  const invalido = !!erro && vaga.trim().length < MIN_VAGA;
+  const invalido = !!erro && !vaga.trim();
 
   return (
     <div className="grid gap-6">
@@ -62,7 +61,7 @@ export function EtapaVaga({ vaga, setVaga, onContinuar }: Props) {
           aria-invalid={invalido || undefined}
           aria-describedby="como-copiar contador-vaga erro-vaga"
         />
-        <Contador id="contador-vaga" atual={vaga.trim().length} minimo={MIN_VAGA} />
+        <Contador id="contador-vaga" atual={vaga.trim().length} />
       </div>
 
       <p id="erro-vaga" role="alert" className="text-sm font-medium text-destructive empty:hidden">
