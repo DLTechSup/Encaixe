@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 import { describe, expect, it } from "vitest";
 import { nomeArquivoPdf } from "@/lib/slug";
 import { estruturarCurriculo, textoSeguroParaPdf } from "@/lib/estrutura-curriculo";

@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Contador } from "./contador";
 import { MIN_VAGA } from "@/lib/constantes";
+import { buscarVaga } from "@/lib/extrair-vaga";
 
 interface Props {
   vaga: string;
@@ -40,17 +41,7 @@ export function EtapaVaga({ vaga, setVaga, onContinuar }: Props) {
     }
 
     setBuscando(true);
-    let texto = "";
-    try {
-      const resposta = await fetch("/api/buscar-vaga", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: url.trim() }),
-      });
-      if (resposta.ok) texto = ((await resposta.json()).texto ?? "").trim();
-    } catch {
-      texto = "";
-    }
+    const texto = (await buscarVaga(url.trim())).trim();
     setBuscando(false);
     setMostrarTexto(true);
 
