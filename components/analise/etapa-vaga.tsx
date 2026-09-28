@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, Loader2, Search, TriangleAlert } from "lucide-react";
+import { ArrowLeft, ArrowRight, CheckCircle2, Loader2, Search, TriangleAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,6 +11,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Contador } from "./contador";
 import { MIN_VAGA } from "@/lib/constantes";
 import { buscarVaga } from "@/lib/extrair-vaga";
+import { lerVagaDoEndereco } from "@/lib/favorito";
+import { Favorito } from "./favorito";
 
 const SITES: Array<[RegExp, string]> = [
   [/indeed\./i, "Indeed"],
@@ -37,8 +39,22 @@ export function EtapaVaga({ vaga, setVaga, onContinuar }: Props) {
   const [buscando, setBuscando] = useState(false);
   const [falhou, setFalhou] = useState(false);
   const [site, setSite] = useState("");
+  const [recebida, setRecebida] = useState(false);
+
   const [mostrarTexto, setMostrarTexto] = useState(vaga.length > 0);
   const [erro, setErro] = useState("");
+
+  // Vaga enviada pelo favorito "Enviar ao Encaixe" (vem no fragmento #vaga=…).
+  // O endereço só existe no navegador, então é lido depois de montar (sincronização com sistema externo).
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    const texto = lerVagaDoEndereco();
+    if (!texto) return;
+    setVaga(texto);
+    setMostrarTexto(true);
+    setRecebida(true);
+  }, [setVaga]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   async function buscar(e: React.FormEvent) {
     e.preventDefault();
@@ -123,7 +139,17 @@ export function EtapaVaga({ vaga, setVaga, onContinuar }: Props) {
         )}
       </form>
 
+      <Favorito />
+
       <div aria-live="polite">
+        {recebida && (
+          <Alert variant="info">
+            <CheckCircle2 aria-hidden="true" />
+            <AlertDescription>
+              <p>Recebemos a vaga pelo favorito. Confira o texto abaixo e continue.</p>
+            </AlertDescription>
+          </Alert>
+        )}
         {falhou && (
           <Alert variant="warning">
             <TriangleAlert aria-hidden="true" />
@@ -137,6 +163,7 @@ export function EtapaVaga({ vaga, setVaga, onContinuar }: Props) {
                 (do título até o fim dos requisitos) arrastando o mouse ou segurando o dedo no celular, copie
                 (Ctrl+C) e cole aqui (Ctrl+V). A formatação não importa.
               </p>
+              <p>Para as próximas vagas, use o favorito “Enviar ao Encaixe” (veja acima): um clique e pronto.</p>
             </AlertDescription>
           </Alert>
         )}

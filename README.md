@@ -49,6 +49,7 @@ O site fica em `https://<usuário>.github.io/<repositório>/`. Também funciona 
 | Ortografia (dicionário VERO pt-BR) e escrita (crase, "mas/mais", "há/a"…) | navegador | `lib/ortografia/` |
 | Vaga de nível mais simples ("qualificado demais"): detecção e ajustes opcionais que omitem, sem mudar cargos, empresas ou datas | navegador | `lib/nivel.ts`, `lib/sugestoes.ts` |
 | Revisão final editável antes de salvar em PDF, Word ou .txt | navegador | `components/analise/curriculo-ajustado.tsx` |
+| Favorito "Enviar ao Encaixe": envia a vaga aberta em qualquer site (Indeed, LinkedIn…) pelo fragmento `#vaga=`, sem servidor | navegador | `lib/favorito.ts`, `components/analise/favorito.tsx` |
 
 Para reconhecer mais competências, acrescente entradas em `lib/dicionario.ts` (termo, categoria e variantes com o **mesmo** significado).
 

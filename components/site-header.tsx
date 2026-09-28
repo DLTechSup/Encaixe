@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, House } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/logo";
 
 const LINKS = [
+  { href: "/", rotulo: "Início" },
   { href: "/#como-funciona", rotulo: "Como funciona" },
   { href: "/#recursos", rotulo: "Recursos" },
   { href: "/#perguntas", rotulo: "Perguntas" },
@@ -22,10 +23,11 @@ export function SiteHeader() {
               key={l.href}
               href={l.href}
               className={
-                "rounded-md px-2 py-1.5 text-sm font-medium text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 " +
-                (i > 0 ? "hidden md:inline-flex" : "")
+                "items-center gap-1.5 rounded-md px-2 py-1.5 text-sm font-medium text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 " +
+                (i > 1 ? "hidden md:inline-flex" : "inline-flex")
               }
             >
+              {i === 0 && <House className="size-4" aria-hidden="true" />}
               {l.rotulo}
             </Link>
           ))}
